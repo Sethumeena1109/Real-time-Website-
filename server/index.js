@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
 
+import paymentroutes from "./routes/payment.js";
 import authroutes from "./routes/auth.js";
 import userroutes from "./routes/auth.js";
 import questionroute from "./routes/question.js";
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
   res.send("Server running");
 });
 
+app.use("/payment", paymentroutes);
 app.use("/auth", authroutes);
 app.use("/user", userroutes);
 app.use("/question", questionroute);
