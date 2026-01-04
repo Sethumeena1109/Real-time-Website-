@@ -22,8 +22,8 @@ app.get("/", (req, res) => {
   res.send("Server running");
 });
 
-app.use("/payment", paymentroutes);
 app.use("/auth", authroutes);
+app.use("/payment", paymentroutes);
 app.use("/user", userroutes);
 app.use("/question", questionroute);
 app.use("/answer", answerroutes);
