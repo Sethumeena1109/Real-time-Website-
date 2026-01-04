@@ -3,45 +3,34 @@ import Friend from "../models/friend.js";
 
 export const createPost = async (req, res) => {
   try {
-    const { userId, content, mediaUrl, mediaType } = req.body;
+    const { userId, content } = req.body;
 
-    const friendsCount = await Friend.countDocuments({
-      userId,
-      status: "accepted"
-    });
+    const friendsCount = await Friend.countDocuments({ userId });
 
-    if (friendsCount === 0)
-      return res.status(403).json({ message: "No friends, cannot post" });
+    if (friendsCount === 0) {
+      return res.status(403).json({ message: "Add friends to post" });
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayPosts = await Post.countDocuments({
+    const postCountToday = await Post.countDocuments({
       userId,
       createdAt: { $gte: today }
     });
 
-    let limit = 1;
-    if (friendsCount >= 2) limit = 2;
-    if (friendsCount > 10) limit = 100;
-
-    if (todayPosts >= limit)
+    if (
+      (friendsCount < 2 && postCountToday >= 1) ||
+      (friendsCount >= 2 && friendsCount < 10 && postCountToday >= friendsCount)
+    ) {
       return res.status(403).json({ message: "Daily post limit reached" });
+    }
 
-    const post = await Post.create({
-      userId,
-      content,
-      mediaUrl,
-      mediaType
-    });
+    const post = new Post({ userId, content });
+    await post.save();
 
     res.status(201).json(post);
   } catch (err) {
-    res.status(500).json(err.message);
+    res.status(500).json({ message: err.message });
   }
-};
-
-export const getPosts = async (req, res) => {
-  const posts = await Post.find().sort({ createdAt: -1 });
-  res.json(posts);
 };
