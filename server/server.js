@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
+import otpRoutes from "./routes/otp.js";
 import authRoutes from "./routes/auth.js";
 import friendRoutes from "./routes/friend.js";
 import paymentRoutes from "./routes/payment.js";
