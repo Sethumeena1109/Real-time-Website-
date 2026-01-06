@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import question from "../models/question.js";
-import { rewardForAnswer, deductPoints } from "./rewardController.js";
+import { rewardForAnswer, deductPoints, rewardForUpvotes } from "./rewardController.js";
 
 export const Askanswer = async (req, res) => {
   const { id: _id } = req.params;
@@ -60,5 +60,51 @@ export const deleteanswer = async (req, res) => {
     console.log(error);
     res.status(500).json("something went wrong..");
     return;
+  }
+};
+
+export const upvoteAnswer = async (req, res) => {
+  const { questionId, answerId } = req.params;
+  const { userId } = req.body; // user who is upvoting
+
+  if (!mongoose.Types.ObjectId.isValid(questionId) || !mongoose.Types.ObjectId.isValid(answerId)) {
+    return res.status(400).json({ message: "Invalid question or answer ID" });
+  }
+
+  try {
+    const questionDoc = await question.findById(questionId);
+    if (!questionDoc) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    // Find the answer inside question
+    const answer = questionDoc.answer.id(answerId);
+    if (!answer) {
+      return res.status(404).json({ message: "Answer not found" });
+    }
+
+    // Initialize upvotes array if not present
+    if (!answer.upvotes) answer.upvotes = [];
+
+    // Prevent the same user from upvoting multiple times
+    if (answer.upvotes.includes(userId)) {
+      return res.status(400).json({ message: "User already upvoted" });
+    }
+
+    // Add userId to upvotes array
+    answer.upvotes.push(userId);
+
+    // Save updated question document
+    await questionDoc.save();
+
+    // Reward user if upvotes reach 5
+    if (answer.upvotes.length === 5) {
+      await rewardForUpvotes(answer.userid); // answer.userid is owner of the answer
+    }
+
+    res.status(200).json({ message: "Upvoted successfully", upvotesCount: answer.upvotes.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
