@@ -1,52 +1,36 @@
-import bcrypt from "bcryptjs";
+import User from "../models/auth.js";
+import LoginHistory from "../models/loginHistory.js";
+import { getUserAgentInfo } from "../utils/getUserAgentInfo.js";
 
-const resetRequests = {}; // in-memory store to limit once per day
-
-export const forgotPassword = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
-    const { email, phone } = req.body;
-    const identifier = email || phone;
-    if (!identifier) {
-      return res.status(400).json({ message: "Email or phone required" });
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (password !== user.password) {
+      return res.status(401).json({ message: "Invalid password" });
     }
 
-    const now = Date.now();
-    if (
-      resetRequests[identifier] &&
-      now - resetRequests[identifier] < 24 * 60 * 60 * 1000
-    ) {
-      return res.status(429).json({
-        message: "You can request forgot password only once a day",
-      });
-    }
+    // Track login info
+    const userAgentInfo = getUserAgentInfo(req);
+    const ip =
+      req.headers["x-forwarded-for"]?.split(",").shift() ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      req.ip;
 
-    // Generate random password (letters only)
-    const generatePassword = () => {
-      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      let pass = "";
-      for (let i = 0; i < 8; i++) {
-        pass += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return pass;
-    };
+    await LoginHistory.create({
+      userId: user._id,
+      browser: userAgentInfo.browser,
+      os: userAgentInfo.os,
+      deviceType: userAgentInfo.deviceType,
+      ipAddress: ip,
+      loginTime: new Date(),
+    });
 
-    const newPassword = generatePassword();
-
-    const userToUpdate = await user.findOne({ email: email });
-    if (!userToUpdate) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const hashpassword = await bcrypt.hash(newPassword, 12);
-    userToUpdate.password = hashpassword;
-    await userToUpdate.save();
-
-    resetRequests[identifier] = now;
-
-    // TODO: send newPassword via email or SMS - currently logged to console
-    console.log(`New password for ${identifier} is: ${newPassword}`);
-
-    res.json({ message: "Password reset successfully. Check your email or phone." });
+    res.status(200).json({ message: "Login successful", user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
