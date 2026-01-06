@@ -20,6 +20,10 @@ const userSchema = mongoose.Schema({
   tags: {
     type: [String]
   },
+  points: {
+    type: Number,
+    default: 0
+  },
   joinDate: {
     type: Date,
     default: Date.now
