@@ -24,25 +24,13 @@ const userSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  points: {
-    type: Number,
-    default: 0,
-  },
-  preferredLanguage: {
-    type: String,
-    default: "English",
-    enum: ["Spanish", "Hindi", "Portuguese", "Chinese", "French", "English"],
-  },
   isEmailVerified: {
     type: Boolean,
     default: false,
   },
-  isMobileVerified: {
-    type: Boolean,
-    default: false,
-  },
-  mobileNumber: {
+  subscriptionPlan: {
     type: String,
+    default: "free",
   },
 });
 
