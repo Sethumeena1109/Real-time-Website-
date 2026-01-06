@@ -3,31 +3,47 @@ import mongoose from "mongoose";
 const userSchema = mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   password: {
     type: String,
-    required: true
+    required: true,
   },
   about: {
-    type: String
+    type: String,
   },
   tags: {
-    type: [String]
-  },
-  points: {
-    type: Number,
-    default: 0
+    type: [String],
   },
   joinDate: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
+  points: {
+    type: Number,
+    default: 0,
+  },
+  preferredLanguage: {
+    type: String,
+    default: "English",
+    enum: ["Spanish", "Hindi", "Portuguese", "Chinese", "French", "English"],
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  isMobileVerified: {
+    type: Boolean,
+    default: false,
+  },
+  mobileNumber: {
+    type: String,
+  },
 });
 
 export default mongoose.model("user", userSchema);
