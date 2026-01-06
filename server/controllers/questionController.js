@@ -1,41 +1,64 @@
-export const postQuestion = async (req, res) => {
+import mongoose from "mongoose";
+import question from "../models/question.js";
+import { rewardForAnswer, deductPoints } from "./rewardController.js";
+
+export const Askanswer = async (req, res) => {
+  const { id: _id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(_id)) {
+    return res.status(400).json({ message: "question unavailable" });
+  }
+  const { noofanswer, answerbody, useranswered, userid } = req.body;
+  updatenoofanswer(_id, noofanswer);
+
   try {
-    const user = req.user; // from auth middleware
-
-    const planLimits = {
-      free: 1,
-      bronze: 5,
-      silver: 10,
-      gold: -1,
-    };
-
-    const userPlan = user.subscriptionPlan || "free";
-    const limit = planLimits[userPlan];
-
-    // Unlimited plan
-    if (limit === -1) {
-      return res.json({ message: "Question posted successfully" });
-    }
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const questionsToday = await Question.countDocuments({
-      userId: user._id,
-      createdAt: { $gte: todayStart },
+    const updatequestion = await question.findByIdAndUpdate(_id, {
+      $addToSet: { answer: [{ answerbody, useranswered, userid }] },
     });
 
-    if (questionsToday >= limit) {
-      return res.status(403).json({
-        message: `Daily question limit reached for ${userPlan} plan`,
-      });
-    }
+    // Reward points for answering
+    await rewardForAnswer(userid);
 
-    // Create question here
-    // await Question.create({ ...req.body, userId: user._id });
+    res.status(200).json({ data: updatequestion });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("something went wrong..");
+    return;
+  }
+};
 
-    res.json({ message: "Question posted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+const updatenoofanswer = async (_id, noofanswer) => {
+  try {
+    await question.findByIdAndUpdate(_id, { $set: { noofanswer: noofanswer } });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const deleteanswer = async (req, res) => {
+  const { id: _id } = req.params;
+  const { noofanswer, answerid, userid } = req.body;
+  if (!mongoose.Types.ObjectId.isValid(_id)) {
+    return res.status(400).json({ message: "question unavailable" });
+  }
+  if (!mongoose.Types.ObjectId.isValid(answerid)) {
+    return res.status(400).json({ message: "answer unavailable" });
+  }
+  updatenoofanswer(_id, noofanswer);
+  try {
+    const updatequestion = await question.updateOne(
+      { _id },
+      {
+        $pull: { answer: { _id: answerid } },
+      }
+    );
+
+    // Deduct points for deleting answer
+    await deductPoints(userid, 5);
+
+    res.status(200).json({ data: updatequestion });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("something went wrong..");
+    return;
   }
 };
